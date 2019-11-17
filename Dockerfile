@@ -2,7 +2,7 @@
 FROM ubuntu:18.04
 
 # The Rust toolchain to use when building our image.  Set by `hooks/build`.
-ARG TOOLCHAIN=stable
+ARG TOOLCHAIN=nightly
 
 # The OpenSSL version to use. We parameterize this because many Rust
 # projects will fail to build with 1.1.
@@ -49,14 +49,11 @@ RUN sudo ln -s "/usr/bin/g++" "/usr/bin/musl-g++"
 # Allow sudo without a password.
 ADD sudoers /etc/sudoers.d/nopasswd
 
-# Run all further code as user `rust`, and create our working directories
-# as the appropriate user.
-USER rust
-RUN mkdir -p /home/rust/libs /home/rust/src
+RUN mkdir -p /home/root/libs /home/root/src
 
 # Set up our path with all our binary directories, including those for the
 # musl-gcc toolchain and for our Rust toolchain.
-ENV PATH=/home/rust/.cargo/bin:/usr/local/musl/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV PATH=/root/.cargo/bin:/usr/local/musl/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Install our Rust toolchain and the `musl` target.  We patch the
 # command-line we pass to the installer so that it won't attempt to
@@ -67,7 +64,7 @@ RUN curl https://sh.rustup.rs -sSf | \
     sh -s -- -y --default-toolchain $TOOLCHAIN && \
     rustup target add x86_64-unknown-linux-musl && \
     rustup target add armv7-unknown-linux-musleabihf
-ADD cargo-config.toml /home/rust/.cargo/config
+ADD cargo-config.toml /root/.cargo/config
 
 # Set up a `git credentials` helper for using GH_USER and GH_TOKEN to access
 # private repositories if desired.
@@ -134,9 +131,9 @@ ENV OPENSSL_DIR=/usr/local/musl/ \
 
 # Install some useful Rust tools from source. This will use the static linking
 # toolchain, but that should be OK.
-RUN cargo install -f cargo-audit && \
-    rm -rf /home/rust/.cargo/registry/
+RUN cargo install -f sccache && \
+    rm -rf /home/root/.cargo/registry/
 
-# Expect our source code to live in /home/rust/src.  We'll run the build as
+# Expect our source code to live in /home/root/src.  We'll run the build as
 # user `rust`, which will be uid 1000, gid 1000 outside the container.
-WORKDIR /home/rust/src
+WORKDIR /home/root/src
